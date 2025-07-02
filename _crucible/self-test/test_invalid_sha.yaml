@@ -1,0 +1,11 @@
+mathlib4:
+  github_org: leanprover-community
+  github_repo: mathlib4
+  sha: invalid_sha_that_does_not_exist_1234567890abcdef
+  branch: master
+
+batteries:
+  github_org: leanprover-community
+  github_repo: batteries
+  sha: another_invalid_sha_9876543210fedcba
+  branch: main 

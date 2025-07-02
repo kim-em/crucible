@@ -22,9 +22,9 @@ def get_default_branch_sha(org, repo):
     return branch_data['commit']['sha'], default_branch
 
 def get_default_branches():
-    repos_file = Path("crucible/repositories.yml")
+    repos_file = Path("_crucible/repositories.yml")
     if not repos_file.exists():
-        print("Error: repositories.yml not found in crucible directory", file=sys.stderr)
+        print("Error: repositories.yml not found in _crucible directory", file=sys.stderr)
         sys.exit(1)
     with open(repos_file, 'r') as f:
         repos_data = yaml.safe_load(f)

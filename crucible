@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""
+Crucible - Cross-Repository Pull Request Testing Tool
+
+A command-line tool for testing pull requests across multiple Lean 4 repositories.
+"""
+
+import sys
+import os
+import subprocess
+import argparse
+from pathlib import Path
+
+def get_script_dir():
+    """Get the directory where this script is located."""
+    return Path(__file__).parent.absolute()
+
+def run_checkout(args):
+    """Run _crucible/checkout.py with the provided arguments."""
+    script_dir = get_script_dir()
+    checkout_script = script_dir / "_crucible" / "checkout.py"
+    
+    if not checkout_script.exists():
+        print(f"Error: {checkout_script} not found", file=sys.stderr)
+        return 1
+    
+    cmd = [sys.executable, str(checkout_script)] + args
+    return subprocess.call(cmd)
+
+def run_clean(args):
+    """Run _crucible/clean.py."""
+    if args:
+        print("Warning: 'crucible clean' doesn't accept arguments, ignoring them", file=sys.stderr)
+    
+    script_dir = get_script_dir()
+    clean_script = script_dir / "_crucible" / "clean.py"
+    
+    if not clean_script.exists():
+        print(f"Error: {clean_script} not found", file=sys.stderr)
+        return 1
+    
+    cmd = [sys.executable, str(clean_script)]
+    return subprocess.call(cmd)
+
+def get_available_tests(self_test_dir):
+    """Discover available test scripts in the self-test directory."""
+    available_tests = {}
+    
+    if not self_test_dir.exists():
+        return available_tests
+    
+    for file_path in self_test_dir.iterdir():
+        if file_path.is_file() and os.access(file_path, os.X_OK):
+            if file_path.suffix in ['.sh', '.py']:
+                test_name = file_path.stem
+                available_tests[test_name] = file_path
+    
+    return available_tests
+
+def run_self_test(args):
+    """Run self-tests."""
+    script_dir = get_script_dir()
+    self_test_dir = script_dir / "_crucible" / "self-test"
+    
+    if not self_test_dir.exists():
+        print(f"Error: {self_test_dir} not found", file=sys.stderr)
+        return 1
+    
+    available_tests = get_available_tests(self_test_dir)
+    
+    if not available_tests:
+        print("No executable test scripts found in _crucible/self-test/", file=sys.stderr)
+        return 1
+    
+    if not args:
+        # Run all self-tests
+        print("Running all self-tests...")
+        exit_code = 0
+        for test_name, test_script in available_tests.items():
+            print(f"\n--- Running {test_name} ---")
+            result = subprocess.call([str(test_script)])
+            if result != 0:
+                exit_code = result
+        return exit_code
+    
+    else:
+        # Run specific test
+        test_name = args[0]
+        if test_name in available_tests:
+            test_script = available_tests[test_name]
+            return subprocess.call([str(test_script)])
+        else:
+            print(f"Error: Unknown self-test '{test_name}'", file=sys.stderr)
+            print(f"Available self-tests: {', '.join(sorted(available_tests.keys()))}", file=sys.stderr)
+            return 1
+
+def show_help():
+    """Display help information."""
+    help_text = """
+Crucible - Cross-Repository Pull Request Testing Tool
+
+USAGE:
+    crucible <COMMAND> [OPTIONS]
+
+COMMANDS:
+    checkout [OPTIONS]    Check out repositories at specified commit SHAs for testing
+                          -f FILE    Read SHAs from YAML file (same format as checkout.yaml)
+                          --stdin    Read YAML from stdin
+                          (no args)  Use default branches
+
+    clean                 Delete checkout.yaml and all repository directories
+
+    self-test [TEST]      Run self-tests
+                          [TEST]     Run specific test (e.g., checkout)
+                          (no args)  Run all available tests
+
+    help                  Show this help message
+
+EXAMPLES:
+    crucible checkout                           # Use default branches
+    crucible checkout -f repos.yaml             # Use specific file for PR testing
+    echo "..." | crucible checkout --stdin      # Use stdin
+    crucible clean                              # Clean up test repositories
+    crucible self-test                          # Run all tests
+    crucible self-test checkout                 # Run checkout tests only
+
+For more information about specific commands, use:
+    crucible checkout --help
+"""
+    print(help_text)
+
+def main():
+    if len(sys.argv) < 2:
+        show_help()
+        return 0
+    
+    command = sys.argv[1]
+    args = sys.argv[2:]
+    
+    if command == "checkout":
+        return run_checkout(args)
+    elif command == "clean":
+        return run_clean(args)
+    elif command == "self-test":
+        return run_self_test(args)
+    elif command == "help" or command == "--help" or command == "-h":
+        show_help()
+        return 0
+    else:
+        print(f"Error: Unknown command '{command}'", file=sys.stderr)
+        print("Run 'crucible help' for usage information", file=sys.stderr)
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main()) 

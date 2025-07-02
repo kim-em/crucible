@@ -1,0 +1,11 @@
+mathlib4:
+  github_org: leanprover-community
+  github_repo: mathlib4
+  sha: v4.0.0
+  branch: master
+
+batteries:
+  github_org: leanprover-community
+  github_repo: batteries
+  sha: v4.2.0
+  branch: main 

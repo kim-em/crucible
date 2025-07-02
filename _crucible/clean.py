@@ -8,9 +8,9 @@ import yaml
 from pathlib import Path
 
 def main():
-    repos_file = Path("crucible/repositories.yml")
+    repos_file = Path("_crucible/repositories.yml")
     if not repos_file.exists():
-        print("repositories.yml not found in crucible directory.")
+        print("repositories.yml not found in _crucible directory.")
         return
     with open(repos_file, 'r') as f:
         repos_data = yaml.safe_load(f)

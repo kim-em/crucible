@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-Checks out repositories at specified SHAs from YAML input (stdin or from default_branches.py), and writes checkout.yaml.
+Checks out repositories at specified SHAs from YAML input and writes checkout.yaml.
+
+Usage:
+  checkout.py -f file.yaml      # Read SHAs from specified file
+  checkout.py --stdin           # Read YAML from stdin
+  checkout.py                   # Use default branches from default_branches.py
 """
 
 import os
@@ -11,7 +16,11 @@ import zipfile
 import tempfile
 import shutil
 from pathlib import Path
-import importlib.util
+import argparse
+
+# Add the parent directory to sys.path so we can import _crucible.default_branches
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from _crucible.default_branches import get_default_branches
 
 def download_repo_contents(org, repo, sha, target_dir):
     """Download repository contents as a zip file and extract to target directory."""
@@ -37,30 +46,31 @@ def download_repo_contents(org, repo, sha, target_dir):
             shutil.rmtree(target_dir)
         shutil.move(extracted_dir, target_dir)
 
-def import_get_default_branches():
-    # Try to import scripts.default_branches.get_default_branches
-    try:
-        from scripts.default_branches import get_default_branches
-        return get_default_branches
-    except ImportError:
-        # Fallback: import by path
-        import importlib.util
-        script_path = os.path.join(os.path.dirname(__file__), 'default_branches.py')
-        spec = importlib.util.spec_from_file_location("default_branches", script_path)
-        if spec is None or spec.loader is None:
-            raise ImportError("Could not load default_branches.py module spec")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module.get_default_branches
+
 
 def main():
-    # Always read stdin
-    input_yaml = sys.stdin.read()
-    if input_yaml.strip():
+    parser = argparse.ArgumentParser(description="Check out repositories at specified SHAs")
+    parser.add_argument('-f', '--file', type=str, help='YAML file containing repository SHAs')
+    parser.add_argument('--stdin', action='store_true', help='Read YAML from stdin')
+    
+    args = parser.parse_args()
+    
+    if args.file:
+        # Read from specified file
+        print(f"Reading repository SHAs from {args.file}...", file=sys.stderr)
+        with open(args.file, 'r') as f:
+            repos_data = yaml.safe_load(f)
+    elif args.stdin:
+        # Read from stdin
+        print("Reading YAML from stdin...", file=sys.stderr)
+        input_yaml = sys.stdin.read()
+        if not input_yaml.strip():
+            print("Error: No YAML provided on stdin", file=sys.stderr)
+            sys.exit(1)
         repos_data = yaml.safe_load(input_yaml)
     else:
-        print("No YAML on stdin, using crucible/default_branches.py to get default SHAs...", file=sys.stderr)
-        from crucible.default_branches import get_default_branches
+        # Use default branches
+        print("No file or stdin specified, using _crucible/default_branches.py to get default SHAs...", file=sys.stderr)
         repos_data = get_default_branches()
 
     # Load existing checkout info from disk if available (before any changes)
