@@ -42,6 +42,21 @@ def run_clean(args):
     cmd = [sys.executable, str(clean_script)]
     return subprocess.call(cmd)
 
+def run_lakefile(args):
+    """Run _crucible/lakefile.py."""
+    if args:
+        print("Warning: 'crucible lakefile' doesn't accept arguments, ignoring them", file=sys.stderr)
+    
+    script_dir = get_script_dir()
+    lakefile_script = script_dir / "_crucible" / "lakefile.py"
+    
+    if not lakefile_script.exists():
+        print(f"Error: {lakefile_script} not found", file=sys.stderr)
+        return 1
+    
+    cmd = [sys.executable, str(lakefile_script)]
+    return subprocess.call(cmd)
+
 def get_available_tests(self_test_dir):
     """Discover available test scripts in the self-test directory."""
     available_tests = {}
@@ -110,6 +125,9 @@ COMMANDS:
 
     clean                 Delete checkout.yaml and all repository directories
 
+    lakefile              Modify lakefiles to use relative paths for local dependencies
+                          and create a root lakefile.toml requiring all repositories
+
     self-test [TEST]      Run self-tests
                           [TEST]     Run specific test (e.g., checkout)
                           (no args)  Run all available tests
@@ -121,6 +139,7 @@ EXAMPLES:
     crucible checkout -f repos.yaml             # Use specific file for PR testing
     echo "..." | crucible checkout --stdin      # Use stdin
     crucible clean                              # Clean up test repositories
+    crucible lakefile                           # Configure lakefiles for local development
     crucible self-test                          # Run all tests
     crucible self-test checkout                 # Run checkout tests only
 
@@ -141,6 +160,8 @@ def main():
         return run_checkout(args)
     elif command == "clean":
         return run_clean(args)
+    elif command == "lakefile":
+        return run_lakefile(args)
     elif command == "self-test":
         return run_self_test(args)
     elif command == "help" or command == "--help" or command == "-h":

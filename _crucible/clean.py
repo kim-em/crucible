@@ -21,6 +21,31 @@ def main():
         checkout_file.unlink()
     else:
         print(f"{checkout_file} does not exist, skipping.")
+    
+    # Delete root lakefile.toml
+    lakefile = Path("lakefile.toml")
+    if lakefile.exists():
+        print(f"Deleting {lakefile}")
+        lakefile.unlink()
+    else:
+        print(f"{lakefile} does not exist, skipping.")
+    
+    # Delete root lake-manifest.json
+    manifest = Path("lake-manifest.json")
+    if manifest.exists():
+        print(f"Deleting {manifest}")
+        manifest.unlink()
+    else:
+        print(f"{manifest} does not exist, skipping.")
+    
+    # Delete lean-toolchain
+    toolchain = Path("lean-toolchain")
+    if toolchain.exists():
+        print(f"Deleting {toolchain}")
+        toolchain.unlink()
+    else:
+        print(f"{toolchain} does not exist, skipping.")
+    
     # Delete each repo directory
     for repo_info in repos_data:
         name = repo_info['name']
